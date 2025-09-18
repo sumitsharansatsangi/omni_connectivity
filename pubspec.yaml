@@ -1,6 +1,6 @@
 name: omni_connectivity
 description: "Lightweight reachability/probe checker for Flutter (native + web) that supports all the protocol you knows."
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/sumitsharansatsangi/omni_connectivity
 repository: https://github.com/sumitsharansatsangi/omni_connectivity
 issue_tracker: https://github.com/sumitsharansatsangi/omni_connectivity/issues

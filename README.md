@@ -51,7 +51,7 @@ Add to your plugin/app `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  omni_connectivity: ^0.0.1
+  omni_connectivity: ^0.0.2
 ```
 
 When packaging your plugin, add your `omni_connectivity` package and export `lib/omni_connectivity.dart`.

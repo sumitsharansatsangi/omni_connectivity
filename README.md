@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) <!-- Replace with your license -->
 
 **Lightweight, platform-aware reachability / probe checker for Flutter (native + web).**
-Check whether your app can reach the network or a specific service (TCP, TLS, HTTP/GraphQL, Web fetch, or a custom native handshake like QUIC/Rust) with a tiny API and minimal dependencies.
+Check whether your app can reach the network or a specific service (TCP, TLS, HTTP/GraphQL/SOAP, Web fetch, or a custom native handshake ) with a tiny API and minimal dependencies.
 
 ---
 
@@ -27,10 +27,10 @@ Check whether your app can reach the network or a specific service (TCP, TLS, HT
 
 ## Why `omni_connectivity`
 
-Many apps need more than a simple "is there any network" boolean. They need to know whether a *specific* service or protocol is reachable (TCP/TLS endpoint, HTTP/GraphQL endpoint, gRPC service, WebSocket, or custom native handshake). `omni_connectivity` is a tiny package designed to:
+Many apps need more than a simple "is there any network" boolean. They need to know whether a *specific* service or protocol is reachable (TCP/TLS endpoint, HTTP/GraphQL endpoint, gRPC service, SOAP Endpoint, WebSocket, or custom native handshake). `omni_connectivity` is a tiny package designed to:
 
 * Be platform-aware (native vs web).
-* Keep dependencies minimal (no `http` or `grpc` required).
+* Keep dependencies minimal.
 * Let you plug custom probes (FFI/MethodChannel/native code) for protocol-specific checks.
 * Provide an ergonomic, static API that’s easy for developers to call anywhere.
 
@@ -39,10 +39,6 @@ Many apps need more than a simple "is there any network" boolean. They need to k
 ## Features
 
 * Static API: `OmniConnectivity.*` — easy to call from app code.
-* Platform implementations:
-
-  * Native: `Socket` / `SecureSocket` (no `http` required).
-  * Web: `fetch` via `package:web` + `dart:js_interop` (typed interop).
 * Flexible: `InternetCheckOption.customProbe` accepts any `Future<bool>` probe.
 * `strict` mode: require all probes to succeed (or default: first success = connected).
 * `onStatusChange` stream triggered by `connectivity_plus` events (used only as triggers; actual status relies on probes).
@@ -145,7 +141,7 @@ class InternetCheckOption {
 ```
 
 * `fromHostPort(host, port)` is a convenience factory for native TCP probes.
-* `customProbe` accepts any async function returning `bool` — ideal for FFI/MethodChannel native handshakes (QUIC, Rust, bincode), gRPC health RPCs, or application-layer checks.
+* `customProbe` accepts any async function returning `bool` — ideal for FFI/MethodChannel native handshakes , gRPC health RPCs, or application-layer checks.
 
 ---
 
@@ -231,10 +227,6 @@ Future<bool> grpcProbe(String host, int port, { Duration timeout = const Duratio
 
 ### Other native handshakes (recommended: MethodChannel or FFI)
 
-Implement a small probe in native code / Rust that performs the handshake and returns `bool`. Expose it via `MethodChannel` and call it as a `customProbe`.
-
-Dart:
-
 ```dart
 Future<bool> otherProbe() async {
   // define any function that returns bool
@@ -275,12 +267,6 @@ Contributions welcome!
 Please open issues or PRs. Follow the existing style and add tests for new behaviors.
 
 If you liked the package, then please give it a Like 👍🏼 and Star ⭐ on GitHub.
-
----
-
-## License
-
-Choose a license for your project. Example: **MIT**. Add a `LICENSE` file to the repository.
 
 ---
 

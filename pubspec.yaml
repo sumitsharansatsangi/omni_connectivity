@@ -5,6 +5,14 @@ homepage: https://github.com/sumitsharansatsangi/omni_connectivity
 repository: https://github.com/sumitsharansatsangi/omni_connectivity
 issue_tracker: https://github.com/sumitsharansatsangi/omni_connectivity/issues
 
+topics: 
+  - connectivity
+  - internet-connectivity
+  - internet_connectivity_plus
+  - connection-checker
+  - network-monitoring
+
+
 environment:
   sdk: ">=3.2.0 <4.0.0"
   # Flutter versions prior to 3.7 did not support because on the dependency on `connectivity_plus`.

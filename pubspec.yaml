@@ -8,7 +8,7 @@ issue_tracker: https://github.com/sumitsharansatsangi/omni_connectivity/issues
 topics: 
   - connectivity
   - internet-connectivity
-  - internet_connectivity_plus
+  - offline-detection
   - connection-checker
   - network-monitoring
 

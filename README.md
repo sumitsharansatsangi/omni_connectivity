@@ -11,6 +11,7 @@ It supports:
 - native socket probes (TCP) through `fromHostPort`
 - browser `fetch` probes on web
 - custom probe functions for protocol-specific checks (gRPC health, backend ping, MethodChannel/FFI handshake, etc.)
+- exposing current transport type(s) like Wi-Fi, mobile, ethernet, VPN, or none
 
 ## Why this package
 
@@ -27,12 +28,13 @@ It supports:
   - `strict: true`: connected only if all probes succeed
 - Change stream based on connectivity events + periodic probe checks
 - Works across native and web with platform-appropriate behavior
+- Transport visibility via `lastKnownTransports` and `onTransportChange`
 
 ## Installation
 
 ```yaml
 dependencies:
-  omni_connectivity: ^0.1.0
+  omni_connectivity: ^0.2.0
 ```
 
 Then import:
@@ -77,6 +79,10 @@ Future<void> main() async {
   OmniConnectivity.onStatusChange.listen((status) {
     print('status changed: $status');
   });
+
+  OmniConnectivity.onTransportChange.listen((transports) {
+    print('transport changed: $transports');
+  });
 }
 ```
 
@@ -104,6 +110,18 @@ Runs the current probes once and returns:
 
 Broadcast stream of connectivity status changes.
 
+### `OmniConnectivity.onTransportChange -> Stream<List<InternetTransport>>`
+
+Broadcast stream of transport type changes.
+
+Example values include:
+- `InternetTransport.wifi`
+- `InternetTransport.mobile`
+- `InternetTransport.ethernet`
+- `InternetTransport.vpn`
+- `InternetTransport.satellite`
+- `InternetTransport.none`
+
 ### `OmniConnectivity.setIntervalAndResetTimer(Duration d)`
 
 Updates polling interval and resets internal timer.
@@ -111,6 +129,10 @@ Updates polling interval and resets internal timer.
 ### `OmniConnectivity.lastTryResults -> InternetStatus?`
 
 Returns last computed status, or `null` before first check.
+
+### `OmniConnectivity.lastKnownTransports -> List<InternetTransport>`
+
+Returns last known transport type list. Defaults to `[InternetTransport.none]` before first connectivity update.
 
 ## InternetCheckOption
 

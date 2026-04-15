@@ -20,9 +20,12 @@ class OmniConnectivityImpl {
   Duration _checkInterval = _defaultInterval;
   bool enableStrictCheck = false;
   InternetStatus? _lastStatus;
+  List<InternetTransport> _lastKnownTransports = const [InternetTransport.none];
   Timer? _timerHandle;
   final StreamController<InternetStatus> _statusController =
       StreamController<InternetStatus>.broadcast();
+  final StreamController<List<InternetTransport>> _transportController =
+      StreamController<List<InternetTransport>>.broadcast();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // Public API expected by api.dart
@@ -71,6 +74,11 @@ class OmniConnectivityImpl {
     return _statusController.stream;
   }
 
+  Stream<List<InternetTransport>> get onTransportChange {
+    _startListeningToConnectivityChanges();
+    return _transportController.stream;
+  }
+
   void setIntervalAndResetTimer(Duration d) {
     _checkInterval = d;
     _timerHandle?.cancel();
@@ -78,6 +86,9 @@ class OmniConnectivityImpl {
   }
 
   InternetStatus? get lastTryResults => _lastStatus;
+
+  List<InternetTransport> get lastKnownTransports =>
+      List.unmodifiable(_lastKnownTransports);
 
   /// Public helper for InternetCheckOption.fromHostPort factory.
   Future<bool> tcpProbe(
@@ -110,8 +121,16 @@ class OmniConnectivityImpl {
   void _startListeningToConnectivityChanges() {
     if (_connectivitySubscription != null) return;
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      _,
+      results,
     ) {
+      final mapped = mapConnectivityResultsToTransports(results);
+      if (!areSameTransports(_lastKnownTransports, mapped)) {
+        _lastKnownTransports = mapped;
+        if (_transportController.hasListener) {
+          _transportController.add(List.unmodifiable(mapped));
+        }
+      }
+
       if (_statusController.hasListener) _maybeEmitStatusUpdate();
     }, onError: (_) {});
   }

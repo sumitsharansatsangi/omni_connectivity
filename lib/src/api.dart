@@ -1,12 +1,78 @@
 // lib/src/api.dart
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+
 // Conditional import selects the correct implementation file.
 // Each implementation file must expose a top-level `platformImpl`.
 import 'impl_io.dart' if (dart.library.html) 'impl_web.dart';
 
 /// Public status enum
 enum InternetStatus { connected, disconnected }
+
+/// Public transport info derived from connectivity_plus results.
+enum InternetTransport {
+  none,
+  wifi,
+  mobile,
+  ethernet,
+  bluetooth,
+  vpn,
+  satellite,
+  other,
+}
+
+List<InternetTransport> mapConnectivityResultsToTransports(
+  List<ConnectivityResult> results,
+) {
+  final transports = <InternetTransport>{};
+
+  for (final result in results) {
+    switch (result) {
+      case ConnectivityResult.none:
+        transports.add(InternetTransport.none);
+      case ConnectivityResult.wifi:
+        transports.add(InternetTransport.wifi);
+      case ConnectivityResult.mobile:
+        transports.add(InternetTransport.mobile);
+      case ConnectivityResult.ethernet:
+        transports.add(InternetTransport.ethernet);
+      case ConnectivityResult.bluetooth:
+        transports.add(InternetTransport.bluetooth);
+      case ConnectivityResult.vpn:
+        transports.add(InternetTransport.vpn);
+      case ConnectivityResult.satellite:
+        transports.add(InternetTransport.satellite);
+      case ConnectivityResult.other:
+        transports.add(InternetTransport.other);
+    }
+  }
+
+  if (transports.isEmpty) {
+    return const [InternetTransport.none];
+  }
+
+  if (transports.length > 1 && transports.contains(InternetTransport.none)) {
+    transports.remove(InternetTransport.none);
+  }
+
+  final sorted = transports.toList()
+    ..sort((a, b) => a.index.compareTo(b.index));
+  return sorted;
+}
+
+bool areSameTransports(
+  List<InternetTransport> a,
+  List<InternetTransport> b,
+) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
 
 /// Public probe option (simple & light)
 class InternetCheckOption {
@@ -60,8 +126,14 @@ class OmniConnectivity {
   static Stream<InternetStatus> get onStatusChange =>
       platformImpl.onStatusChange;
 
+  static Stream<List<InternetTransport>> get onTransportChange =>
+      platformImpl.onTransportChange;
+
   static void setIntervalAndResetTimer(Duration d) =>
       platformImpl.setIntervalAndResetTimer(d);
 
   static InternetStatus? get lastTryResults => platformImpl.lastTryResults;
+
+  static List<InternetTransport> get lastKnownTransports =>
+      platformImpl.lastKnownTransports;
 }

@@ -1,131 +1,118 @@
-# omni\_connectivity
+# omni_connectivity
 
-[![pub version](https://img.shields.io/badge/pub-v0.0.2-blue.svg)](https://pub.dev/packages/omni_connectivity)
+[![pub version](https://img.shields.io/pub/v/omni_connectivity.svg)](https://pub.dev/packages/omni_connectivity)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Lightweight, platform-aware reachability / probe checker for Flutter (native + web).**
-Check whether your app can reach the network or a specific service (TCP, TLS, HTTP/GraphQL/SOAP, web fetch, or a custom native handshake) with a tiny API and minimal dependencies.
+Lightweight, platform-aware reachability checks for Flutter apps.
 
----
+This package answers a practical question: can my app reach the endpoint(s) that matter to my business logic?
 
-## Table of contents
+It supports:
+- native socket probes (TCP) through `fromHostPort`
+- browser `fetch` probes on web
+- custom probe functions for protocol-specific checks (gRPC health, backend ping, MethodChannel/FFI handshake, etc.)
 
-* [Why `omni_connectivity`](#why-omni_connectivity)
-* [Features](#features)
-* [Install](#install)
-* [Quick start](#quick-start)
-* [Public API](#public-api)
-* [Probe examples (copy-paste)](#probe-examples-copy-paste)
-* [Web considerations & CORS](#web-considerations--cors)
-* [Best practices](#best-practices)
-* [Troubleshooting](#troubleshooting)
-* [Contributing](#contributing)
-* [License](#license)
+## Why this package
 
----
+`connectivity_plus` tells you when network interfaces change.
 
-## Why `omni_connectivity`
-
-Many apps need more than a simple "is there any network" boolean. They need to know whether a *specific* service or protocol is reachable (TCP/TLS endpoint, HTTP/GraphQL endpoint, gRPC service, SOAP Endpoint, WebSocket, or custom native handshake). `omni_connectivity` is a tiny package designed to:
-
-* Be platform-aware (native vs web).
-* Keep dependencies minimal.
-* Let you plug custom probes (FFI/MethodChannel/native code) for protocol-specific checks.
-* Provide an ergonomic, static API that’s easy for developers to call anywhere.
-
----
+`omni_connectivity` tells you whether your configured probe targets are actually reachable, and it gives you a single static API to check once or monitor changes over time.
 
 ## Features
 
-* Static API: `OmniConnectivity.*` — easy to call from app code.
-* Flexible: `InternetCheckOption.customProbe` accepts any `Future<bool>` probe.
-* `strict` mode: require all probes to succeed (or default: first success = connected).
-* `onStatusChange` stream triggered by `connectivity_plus` events (used only as triggers; actual status relies on probes).
+- Simple static API: `OmniConnectivity.*`
+- Multiple probe targets per check
+- `strict` mode support:
+  - `strict: false` (default): connected if any probe succeeds
+  - `strict: true`: connected only if all probes succeed
+- Change stream based on connectivity events + periodic probe checks
+- Works across native and web with platform-appropriate behavior
 
----
-
-## Install
-
-Add to your plugin/app `pubspec.yaml`:
+## Installation
 
 ```yaml
 dependencies:
-  omni_connectivity: ^0.0.2
+  omni_connectivity: ^0.1.0
 ```
 
-When packaging your plugin, add your `omni_connectivity` package and export `lib/omni_connectivity.dart`.
+Then import:
 
----
+```dart
+import 'package:omni_connectivity/omni_connectivity.dart';
+```
 
 ## Quick start
+
+`OmniConnectivity.init()` is optional. Call it only when you want custom options, interval, or strict behavior.
 
 ```dart
 import 'package:flutter/widgets.dart';
 import 'package:omni_connectivity/omni_connectivity.dart';
+
+Future<bool> myBackendHealthProbe() async {
+  // Add your own app-specific check here.
+  return true;
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await OmniConnectivity.init(
     options: [
-      // native-friendly TCP probe (Cloudflare)
+      // Native TCP probe.
       InternetCheckOption.fromHostPort('1.1.1.1', 443),
-      // custom probe (native/FFI/MethodChannel)
+      // Custom app/service probe.
       InternetCheckOption(
-        uri: Uri.parse('custom://custom-service'),
-        customProbe: () => myCustomProbe(),
+        uri: Uri.parse('https://api.example.com/health'),
+        customProbe: myBackendHealthProbe,
       ),
     ],
-    checkInterval: Duration(seconds: 8),
+    checkInterval: const Duration(seconds: 8),
     strict: false,
   );
 
-  final ok = await OmniConnectivity.hasInternetAccess();
-  print('Has internet access: $ok');
+  final hasAccess = await OmniConnectivity.hasInternetAccess();
+  print('has internet access: $hasAccess');
 
   OmniConnectivity.onStatusChange.listen((status) {
-    print('Connectivity changed: $status');
+    print('status changed: $status');
   });
 }
 ```
-
----
 
 ## Public API
 
 ### `OmniConnectivity.init({ options, checkInterval, strict })`
 
-Initialize/override configuration. Optional; if not called, reasonable defaults are used.
+Optional initialization. If not called, built-in defaults are used.
 
-* `options` — `List<InternetCheckOption>` (probes to run).
-* `checkInterval` — `Duration` between periodic checks.
-* `strict` — `bool` (default `false`).
+- `options`: `List<InternetCheckOption>`
+- `checkInterval`: `Duration` between periodic checks
+- `strict`: `bool`, default `false`
 
 ### `OmniConnectivity.hasInternetAccess() -> Future<bool>`
 
-Convenience one-liner returning `true` when at least one probe succeeded (or all succeeded if `strict`).
+Returns `true` when probe evaluation resolves to connected.
 
 ### `OmniConnectivity.checkOnce() -> Future<InternetStatus>`
 
-Runs the configured probes once and returns `InternetStatus.connected` or `InternetStatus.disconnected`.
+Runs the current probes once and returns:
+- `InternetStatus.connected`
+- `InternetStatus.disconnected`
 
 ### `OmniConnectivity.onStatusChange -> Stream<InternetStatus>`
 
-Subscribe to connectivity state changes.
+Broadcast stream of connectivity status changes.
 
 ### `OmniConnectivity.setIntervalAndResetTimer(Duration d)`
 
-Change polling interval and reset the timer.
+Updates polling interval and resets internal timer.
 
 ### `OmniConnectivity.lastTryResults -> InternetStatus?`
 
-Last known status (or `null` if no checks have been run).
+Returns last computed status, or `null` before first check.
 
----
-
-## `InternetCheckOption`
-
-Represents one probe:
+## InternetCheckOption
 
 ```dart
 class InternetCheckOption {
@@ -133,147 +120,94 @@ class InternetCheckOption {
   final Duration timeout;
   final Future<bool> Function()? customProbe;
 
-  const InternetCheckOption({ this.uri, this.timeout = const Duration(seconds: 3), this.customProbe });
+  const InternetCheckOption({
+    this.uri,
+    this.timeout = const Duration(seconds: 3),
+    this.customProbe,
+  });
 
-  factory InternetCheckOption.fromHostPort(String host, int port, { Duration timeout = const Duration(seconds: 3) }) => ...;
+  factory InternetCheckOption.fromHostPort(
+    String host,
+    int port, {
+    Duration timeout = const Duration(seconds: 3),
+  });
 }
 ```
 
-* `fromHostPort(host, port)` is a convenience factory for native TCP probes.
-* `customProbe` accepts any async function returning `bool` — ideal for FFI/MethodChannel native handshakes , gRPC health RPCs, or application-layer checks.
+- Use `fromHostPort` for native TCP checks.
+- Use `customProbe` for fully custom logic.
+- On web, when `customProbe` is not provided, the implementation uses `fetch` against `uri`.
 
----
+## Platform behavior
 
-## Probe examples (copy-paste)
+| Platform | Default probe behavior |
+| --- | --- |
+| Native (Android/iOS/macOS/Linux/Windows) | Uses configured probe callbacks. `fromHostPort` performs TCP socket checks. |
+| Web | Uses `fetch` (`HEAD`) for options with `uri` when `customProbe` is not provided. |
 
-### TCP probe (native)
+## Web and CORS
 
-```dart
-import 'dart:io';
-
-Future<bool> tcpProbe(String host, int port, { Duration timeout = const Duration(seconds: 2) }) async {
-  try {
-    final socket = await Socket.connect(host, port, timeout: timeout);
-    socket.destroy();
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-```
-
-### TLS probe (native)
-
-```dart
-import 'dart:io';
-
-Future<bool> tlsProbe(String host, int port, { Duration timeout = const Duration(seconds: 3) }) async {
-  try {
-    final socket = await SecureSocket.connect(host, port, timeout: timeout, onBadCertificate: (_) => true);
-    socket.destroy();
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-```
-
-### HTTP HEAD probe (native, no `http` package)
-
-```dart
-import 'dart:io';
-import 'dart:convert';
-
-Future<bool> httpHeadProbe(Uri uri, { Duration timeout = const Duration(seconds: 3) }) async {
-  final client = HttpClient();
-  try {
-    client.connectionTimeout = timeout;
-    final req = await client.openUrl('HEAD', uri);
-    final resp = await req.close().timeout(timeout);
-    return resp.statusCode >= 200 && resp.statusCode < 400;
-  } catch (_) {
-    return false;
-  } finally {
-    client.close(force: true);
-  }
-}
-```
-
-### Fetch HEAD probe (web; CORS required)
-
-```dart
-// implemented inside web impl using package:web + dart:js_interop
-Future<bool> fetchHeadProbe(String url, { Duration timeout = const Duration(seconds: 3) });
-```
-
-### gRPC probe (when you already depend on grpc)
-
-```dart
-import 'package:grpc/grpc.dart';
-
-Future<bool> grpcProbe(String host, int port, { Duration timeout = const Duration(seconds: 3) }) async {
-  final channel = ClientChannel(host, port: port, options: const ChannelOptions(credentials: ChannelCredentials.insecure()));
-  try {
-    await channel.getConnection().isReady.timeout(timeout);
-    await channel.shutdown();
-    return true;
-  } catch (_) {
-    try { await channel.shutdown(); } catch (_) {}
-    return false;
-  }
-}
-```
-
-### Other native handshakes (recommended: MethodChannel or FFI)
-
-```dart
-Future<bool> otherProbe() async {
-  // define any function that returns bool
-}
-```
-
----
-
-## Web considerations & CORS
-
-* Browser probes use `fetch` and are subject to **CORS**. The server must allow cross-origin HEAD/GET requests for probes to succeed from web builds.
-* `dart:io` sockets are unavailable on web — web builds must use `fetch` or a custom web-friendly probe.
-* Prefer to probe endpoints you control (CORS-enabled) for reliable web behavior.
-
----
+- Browser probes are subject to CORS.
+- Ensure probed endpoints allow your origin and support request methods used by health checks.
+- Prefer probing endpoints you control for predictable behavior.
 
 ## Best practices
 
-* Keep probe timeouts short (1–3s) to avoid blocking UI.
-* Use TCP/TLS probes for fast reachability checks (native).
-* Use `customProbe` for app-layer validation or protocol-specific handshakes.
-* Use `strict = true` only when all endpoints are under your control.
-* Allow consumers of your plugin to override default endpoints (don’t hardcode public IPs as single source of truth).
+- Keep probe timeouts short (typically 1-3 seconds).
+- Probe business-relevant endpoints, not just public DNS/IP targets.
+- Use `strict: true` only when all endpoints must be reachable for your app to operate.
+- Keep probe targets configurable for different environments.
 
----
+## Development guide
 
-## Troubleshooting
+### Prerequisites
 
-* **Web probes fail with CORS errors** — ensure the endpoint returns `Access-Control-Allow-Origin: *` (or your origin) and allows HEAD/GET.
-* **Probe flaky on some networks** — corporate or captive networks may block public DNS or certain IPs. Make endpoints configurable and prefer application-layer health endpoints you control.
+- Flutter SDK `>=3.7.0`
+- Dart SDK `>=3.2.0 <4.0.0`
 
----
+### Local setup
+
+```bash
+flutter pub get
+```
+
+### Run tests
+
+```bash
+flutter test
+```
+
+### Run a single test file
+
+```bash
+flutter test test/probe_runner_test.dart
+```
+
+## Example app
+
+An example Flutter app is available in the `example/` folder.
+
+Run it with:
+
+```bash
+cd example
+flutter pub get
+flutter run
+```
 
 ## Contributing
 
-Contributions welcome! 
+Contributions are welcome.
 
-Please open issues or PRs. Follow the existing style and add tests for new behaviors.
+Please:
+- open an issue for bugs or feature requests
+- keep changes scoped and documented
+- add or update tests when behavior changes
 
-If you liked the package, then please give it a Like 👍🏼 and Star ⭐ on GitHub.
+## License
 
----
+MIT License. See [LICENSE](LICENSE).
 
-## A final note
+## Author
 
-`omni_connectivity` is meant to be a small, focused plugin: a developer-friendly, cross-platform probe abstraction. It keeps the core dependency-free for protocol-specific checks and lets apps plug in the exact probe they need (TCP, HTTP, gRPC, any binary protocol you made).
-
-## 👨‍💻 Author
-
-[![Sumit Kumar](https://github.com/sumitsharansatsangi.png?size=100)](https://github.com/sumitsharansatsangi)  
-**[Sumit Kumar](https://github.com/sumitsharansatsangi)**  
+[Sumit Kumar](https://github.com/sumitsharansatsangi)

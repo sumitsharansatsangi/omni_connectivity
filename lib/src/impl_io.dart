@@ -2,9 +2,11 @@
 
 import 'dart:async';
 import 'dart:io' show Socket;
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'api.dart'; // to reuse public types (InternetCheckOption, InternetStatus)
+import 'probe_runner.dart';
 
 // Public implementation class
 class OmniConnectivityImpl {
@@ -51,52 +53,17 @@ class OmniConnectivityImpl {
   }
 
   Future<InternetStatus> checkOnce() async {
-    if (_options.isEmpty) return InternetStatus.disconnected;
-    final completer = Completer<InternetStatus>();
-    int remaining = _options.length;
-    int successCount = 0;
-
-    for (final opt in _options) {
-      final probe = opt.customProbe;
-      if (probe == null) {
-        remaining -= 1;
-        if (remaining == 0 && !completer.isCompleted) {
-          completer.complete(
-            successCount > 0
-                ? InternetStatus.connected
-                : InternetStatus.disconnected,
-          );
+    return runProbeChecks(
+      options: _options,
+      strict: enableStrictCheck,
+      resolveProbe: (option) async {
+        final probe = option.customProbe;
+        if (probe == null) {
+          return false;
         }
-        continue;
-      }
-
-      unawaited(
-        probe().then((ok) {
-          if (ok) successCount += 1;
-        }).catchError((_) {
-          // ignore
-        }).whenComplete(() {
-          remaining -= 1;
-          if (completer.isCompleted) return;
-          if (!enableStrictCheck && successCount > 0) {
-            completer.complete(InternetStatus.connected);
-          } else if (enableStrictCheck && remaining == 0) {
-            completer.complete(
-              successCount == _options.length
-                  ? InternetStatus.connected
-                  : InternetStatus.disconnected,
-            );
-          } else if (!enableStrictCheck && remaining == 0) {
-            completer.complete(
-              successCount > 0
-                  ? InternetStatus.connected
-                  : InternetStatus.disconnected,
-            );
-          }
-        }),
-      );
-    }
-    return completer.future;
+        return probe();
+      },
+    );
   }
 
   Stream<InternetStatus> get onStatusChange {

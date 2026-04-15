@@ -6,10 +6,11 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:web/web.dart' as web;
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:web/web.dart' as web;
 
 import 'api.dart';
+import 'probe_runner.dart';
 
 /// Perform a HEAD fetch using the browser's fetch API via package:web.
 /// Uses AbortController and enforces timeout by aborting the fetch.
@@ -92,46 +93,23 @@ class OmniConnectivityImpl {
   }
 
   Future<InternetStatus> checkOnce() async {
-    if (_options.isEmpty) return InternetStatus.disconnected;
-    final completer = Completer<InternetStatus>();
-    int remaining = _options.length;
-    int successCount = 0;
-
-    for (final opt in _options) {
-      // If the option provides a Dart-side customProbe, use that.
-      // Otherwise, use the web fetch probe which accepts a Dart String and
-      // only converts it to JS when calling fetch.
-      final probe = opt.customProbe ??
-          (() => _fetchProbe(opt.uri!.toString(), timeout: opt.timeout));
-      unawaited(
-        probe()
-            .then((ok) {
-              if (ok) successCount += 1;
-            })
-            .catchError((_) {})
-            .whenComplete(() {
-              remaining -= 1;
-              if (completer.isCompleted) return;
-              if (!enableStrictCheck && successCount > 0) {
-                completer.complete(InternetStatus.connected);
-              } else if (enableStrictCheck && remaining == 0) {
-                completer.complete(
-                  successCount == _options.length
-                      ? InternetStatus.connected
-                      : InternetStatus.disconnected,
-                );
-              } else if (!enableStrictCheck && remaining == 0) {
-                completer.complete(
-                  successCount > 0
-                      ? InternetStatus.connected
-                      : InternetStatus.disconnected,
-                );
-              }
-            }),
-      );
-    }
-
-    return completer.future;
+    return runProbeChecks(
+      options: _options,
+      strict: enableStrictCheck,
+      resolveProbe: (option) async {
+        // If the option provides a Dart-side customProbe, use that.
+        // Otherwise, use the web fetch probe.
+        final probe = option.customProbe;
+        if (probe != null) {
+          return probe();
+        }
+        final uri = option.uri;
+        if (uri == null) {
+          return false;
+        }
+        return _fetchProbe(uri.toString(), timeout: option.timeout);
+      },
+    );
   }
 
   Stream<InternetStatus> get onStatusChange {

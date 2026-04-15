@@ -1,11 +1,10 @@
 # omni\_connectivity
 
-[![pub version](https://img.shields.io/badge/pub-v0.1.0-blue.svg)](https://pub.dev/) <!-- Replace with your pub.dev link -->
-[![build status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#) <!-- Replace with CI badge -->
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) <!-- Replace with your license -->
+[![pub version](https://img.shields.io/badge/pub-v0.0.2-blue.svg)](https://pub.dev/packages/omni_connectivity)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Lightweight, platform-aware reachability / probe checker for Flutter (native + web).**
-Check whether your app can reach the network or a specific service (TCP, TLS, HTTP/GraphQL/SOAP, Web fetch, or a custom native handshake ) with a tiny API and minimal dependencies.
+Check whether your app can reach the network or a specific service (TCP, TLS, HTTP/GraphQL/SOAP, web fetch, or a custom native handshake) with a tiny API and minimal dependencies.
 
 ---
 

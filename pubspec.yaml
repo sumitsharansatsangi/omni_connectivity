@@ -1,11 +1,11 @@
 name: omni_connectivity
-description: "Lightweight reachability/probe checker for Flutter (native + web) that supports all the protocol you knows."
-version: 0.0.2
+description: "Lightweight reachability/probe checker for Flutter (native + web) that supports multiple protocols."
+version: 0.1.0
 homepage: https://github.com/sumitsharansatsangi/omni_connectivity
 repository: https://github.com/sumitsharansatsangi/omni_connectivity
 issue_tracker: https://github.com/sumitsharansatsangi/omni_connectivity/issues
 
-topics: 
+topics:
   - connectivity
   - internet-connectivity
   - offline-detection
@@ -21,7 +21,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  connectivity_plus: ^7.0.0   
+  connectivity_plus: ^7.1.1
   web: ^1.1.1
 
 dev_dependencies:

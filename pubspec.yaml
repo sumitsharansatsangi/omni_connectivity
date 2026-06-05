@@ -4,6 +4,7 @@ version: 0.2.0
 homepage: https://github.com/sumitsharansatsangi/omni_connectivity
 repository: https://github.com/sumitsharansatsangi/omni_connectivity
 issue_tracker: https://github.com/sumitsharansatsangi/omni_connectivity/issues
+publish_to: "none" # Remove this line to publish to pub.dev
 
 topics:
   - connectivity
@@ -13,14 +14,15 @@ topics:
   - network-monitoring
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
-  # Flutter versions prior to 3.7 did not support because on the dependency on `connectivity_plus`.
-  flutter: ">=3.7.0"
+  sdk: ">=3.12.0 <4.0.0"
+  # Flutter versions prior to 3.44.0 did not support because on the dependency on `connectivity_plus`.
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  connectivity_plus: ^7.1.1
+  connectivity_plus:
+    git: https://github.com/kumsumit/connectivity_plus.git
   web: ^1.1.1
 
 dev_dependencies:

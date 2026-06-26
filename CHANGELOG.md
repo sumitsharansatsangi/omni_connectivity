@@ -1,3 +1,7 @@
+## 0.3.0
+
+* Updated `connectivity_plus`
+
 ## 0.2.0
 
 * **Feature**: Add network transport visibility with `InternetTransport` enum.

@@ -4,7 +4,6 @@ version: 0.3.0
 homepage: https://github.com/sumitsharansatsangi/omni_connectivity
 repository: https://github.com/sumitsharansatsangi/omni_connectivity
 issue_tracker: https://github.com/sumitsharansatsangi/omni_connectivity/issues
-publish_to: "none" # Remove this line to publish to pub.dev
 
 topics:
   - connectivity
